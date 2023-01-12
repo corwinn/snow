@@ -393,7 +393,7 @@ static inline void Line(int x0, int y0, int x1, int y1, unsigned char * bitmap,
     }
 }// Line()
 
-// Something like a snowflake generator; generates to an RGBA buffer of size "a"
+// Something-like-a-snowflake generator; generates to an RGBA buffer of size "a"
 // with alpha = 0xaa.
 class SnoflakeGen final
 {
