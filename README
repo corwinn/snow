@@ -1,0 +1,40 @@
+
+What is it?
+===========
+
+This program is being made in the hopes that it one day will become a proper
+3D snowfall simulator.
+
+
+Keyboard keys
+=============
+
+ * 'q' - quits the program
+ * 'f' - toggle full-screen
+ * 'p' - freeze :)
+
+
+How to build
+============
+
+ * *nix: type "make"
+ * x86_64-w64-mingw32-clang++: type ". build_it_mingw"
+ * "VS": TODO (create dev. env. with "FreeGLUT-3.4.0"; should compile and run as
+               expected, but one can't be sure until it does; anyways, wind
+               motion and proper animation and look are way higher priority)
+
+
+Credits
+=======
+
+Thanks to:
+
+  * "FreeGLUT-3.4.0" for the, windowing system to "Open GL", bridge.
+  * "MinGW-w64-9.0.0" for the means of cross-compiling the "Windows" OS binary.
+
+
+Disclaimer
+==========
+
+All trademarks and/or service marks used in this project are the trademarks
+and/or service marks of their respective owners.
