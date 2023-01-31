@@ -197,11 +197,24 @@ class Snowflake final
     }
     public void Step()
     {
+        static int w_frames {};
+        static float x_w {}, y_w {},
+            dy_w {0.0001}, // random cos parameter to simulate wind blows
+            dx_w {0.0001}; // random sin parameter to simulate wind blows
         if (_color < 0) Init ();
         memmove (_p+3, _p, 3*TNUM*sizeof(float));
         memmove (_r+3, _r, 3*TNUM*sizeof(float));
         if (_mblur_cnt < TNUM) _mblur_cnt++;
         Rotate (_r[0], _rdx).Rotate (_r[1], _rdy).Rotate (_r[2], _rdz);
+
+        _wx = sin (x_w);
+        _wy = cos (y_w);
+        if (! (w_frames = (w_frames + 1) % 200))
+            dy_w = rndfr (0.00001, 0.0002),
+            dx_w = rndfr (0.00001, 0.0002);
+        x_w += dx_w; if (x_w > 6.28) x_w = 0; if (_wx < 0) _wx = -_wx;
+        y_w += dy_w; if (y_w > 6.28) y_w = 0; if (_wy < 0) _wy = -_wy;
+
         _p[0] += _wx * _dx;
         _p[1] += _wy * _dy;
         _p[2] += _wz * _dz;
