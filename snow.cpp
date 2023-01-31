@@ -86,8 +86,10 @@ static GLsizei current_viewport_width {0}, current_viewport_height {0};
 //TODO os.h
 #ifdef _WIN32
 float rndf(float n) { return rand () / static_cast<float>(RAND_MAX) * n; }
+float rndi(int n) { return rand () / RAND_MAX * n; }
 #else
 float rndf(float n) { return random () / static_cast<float>(RAND_MAX) * n; }
+float rndi(int n) { return random () / RAND_MAX * n; }
 #endif
 float rndfr(float a, float b) { return a + rndf (b-a); }
 
@@ -197,7 +199,8 @@ class Snowflake final
     }
     public void Step()
     {
-        static int w_frames {};
+        static bool w_odd {}; // aply to half the snowflakes
+        static int w_frames {}, w_frames_next_change {200};
         static float x_w {}, y_w {},
             dy_w {0.0001}, // random cos parameter to simulate wind blows
             dx_w {0.0001}; // random sin parameter to simulate wind blows
@@ -207,13 +210,17 @@ class Snowflake final
         if (_mblur_cnt < TNUM) _mblur_cnt++;
         Rotate (_r[0], _rdx).Rotate (_r[1], _rdy).Rotate (_r[2], _rdz);
 
-        _wx = sin (x_w);
-        _wy = cos (y_w);
-        if (! (w_frames = (w_frames + 1) % 200))
-            dy_w = rndfr (0.00001, 0.0002),
-            dx_w = rndfr (0.00001, 0.0002);
-        x_w += dx_w; if (x_w > 6.28) x_w = 0; if (_wx < 0) _wx = -_wx;
-        y_w += dy_w; if (y_w > 6.28) y_w = 0; if (_wy < 0) _wy = -_wy;
+        if (w_odd) {
+            _wx = sin (x_w);
+            _wy = cos (y_w);
+            if (! (w_frames = (w_frames + 1) % w_frames_next_change))
+                dy_w = rndfr (0.00001, 0.0002),
+                dx_w = rndfr (0.00001, 0.0001),
+                w_frames_next_change = 200 + rndi (1000);
+            x_w += dx_w; if (x_w > 6.28) x_w = 0; if (_wx < 0) _wx = -_wx;
+            y_w += dy_w; if (y_w > 6.28) y_w = 0; if (_wy < 0) _wy = -_wy;
+        }
+        w_odd = ! w_odd;
 
         _p[0] += _wx * _dx;
         _p[1] += _wy * _dy;
@@ -224,7 +231,7 @@ class Snowflake final
         _fade_out = _p[1] < min_y
             || _p[0] < min_x || _p[0] > max_x;
         if (_fade_out) _color_delta = _color / 256; // ~8 frames
-    }
+    }// Step
 };// Snowflake
 
 static int const WT_SIZE {100};
