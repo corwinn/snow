@@ -151,11 +151,11 @@ class Snowflake final
     }
     public void Render()//TODO shader (as an option)
     {
-        /*if (_fade_out) {
+        if (_fade_out) {
             _color -= _color_fade_out;
             if (_color < 0) return;
             _color_fade_out += _color_fade_out;
-        }*/
+        }
         for (int t = _mblur_cnt; t >= 0; t--) {
             glLoadIdentity ();
 
@@ -187,7 +187,7 @@ class Snowflake final
     }
     public void Step()
     {
-        //if (_color < 0) Init ();
+        if (_color < 0) Init ();
         memmove (_p+3, _p, 3*TNUM*sizeof(float));
         memmove (_r+3, _r, 3*TNUM*sizeof(float));
         if (_mblur_cnt < TNUM) _mblur_cnt++;
@@ -197,12 +197,11 @@ class Snowflake final
         _p[2] += _wz * _dz;
         // stop disappearing out of thin air
         if (_p[2] > max_z || _p[2] < min_z) _dz = -_dz, _p[2] += _dz;
-        //if (_fade_out) return;
+        if (_fade_out) return;
         _fade_out = _p[1] < min_y
             || _p[0] < min_x || _p[0] > max_x;
             // || _p[2] < min_z || _p[2] > max_z;
-        //if (_fade_out) _color_fade_out = _color / 256; // ~8 frames
-        if (_fade_out) Init ();
+        if (_fade_out) _color_fade_out = _color / 256; // ~8 frames
         // _ra += 0.1; if (_ra > 360) _ra = 0;
     }
 };// Snowflake
