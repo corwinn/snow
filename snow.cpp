@@ -102,10 +102,9 @@ class Snowflake final
     GLfloat _color;  // R=G=B
     float _wx, _wy, _wz;     // weight (0;1] by which _d are multiplied
     float _p[3*(TNUM+1)] {}; // base pos x,y,z + trail (TNUM * x,y,z)
-                             //TODO implement the motion "blur"
+    float _r[3*(TNUM+1)] {}; // base rotation x,y,z + trail (TNUM * x,y,z)
     float _dx, _dy, _dz;     // delta x, y, z - translate
     float _rdx, _rdy, _rdz;  // delta x, y, z - rotate
-    float _rx, _ry, _rz;     // x, y, z - rotation vector
                              // when -1 or +1 is reached, invert the _rd
     // float _ra {};            // rotation angle
     float _scale;
@@ -144,23 +143,27 @@ class Snowflake final
     }
     public void Render()//TODO shader (as an option)
     {
-        glLoadIdentity ();
+        for (int t = TNUM; t >= 0; t--) {
+            glLoadIdentity ();
 
-        glTranslatef (_p[0], _p[1], _p[2]);
-        glTranslatef (0.5, 0.5, 0);
-        // glRotatef (_ra, _rx, _ry, _rz);
-        glRotatef (_rx, 1, 0, 0);
-        glRotatef (_ry, 0, 1, 0);
-        glRotatef (_rz, 0, 0, 1);
-        glScalef (_scale, _scale, 1);
-        glTranslatef (-0.5, -0.5, 0);
+            glTranslatef ((_p+3*t)[0], (_p+3*t)[1], (_p+3*t)[2]);
+            glTranslatef (0.5, 0.5, 0);
+            // glRotatef (_ra, _rx, _ry, _rz);
 
-        glColor3f (_color, _color, _color);
-        glBegin (GL_TRIANGLE_STRIP);//TODO come on; (leave this optional)
-            for (int i = 0; i < 4; i++)
-                glTexCoord2fv (&(_t[_i[i]*2])),
-                glVertex3fv (&(_v[_i[i]*3]));
-        glEnd ();
+            glRotatef ((_r+3*t)[0], 1, 0, 0);
+            glRotatef ((_r+3*t)[1], 0, 1, 0);
+            glRotatef ((_r+3*t)[2], 0, 0, 1);
+
+            glScalef (_scale, _scale, 1);
+            glTranslatef (-0.5, -0.5, 0);
+
+            glColor3f (_color / (t*t+1), _color / (t*t+1), _color / (t*t+1));
+            glBegin (GL_TRIANGLE_STRIP);//TODO come on; (leave this optional)
+                for (int i = 0; i < 4; i++)
+                    glTexCoord2fv (&(_t[_i[i]*2])),
+                    glVertex3fv (&(_v[_i[i]*3]));
+            glEnd ();
+        }
     }
     private inline Snowflake & Rotate(float & a, float & d)
     {
@@ -171,7 +174,9 @@ class Snowflake final
     }
     public void Step()
     {
-        Rotate (_rx, _rdx).Rotate (_ry, _rdy).Rotate (_rz, _rdz);
+        memmove (_p+3, _p, 3*TNUM*sizeof(float));
+        memmove (_r+3, _r, 3*TNUM*sizeof(float));
+        Rotate (_r[0], _rdx).Rotate (_r[1], _rdy).Rotate (_r[2], _rdz);
         _p[0] += _wx * _dx;
         _p[1] += _wy * _dy;
         _p[2] += _wz * _dz;
@@ -208,53 +213,21 @@ static float Noise(int i, int s, float & m, float & n)
     ring_g = (ring_g + 1) % R;
     r = sum / R;
 
-    // t = (i+1) / static_cast<float>(s);
-    // t += 1.00/(WT_NUM*2);
-    // 180 - 3.14
-    //  i    x
-    // i - s
-    // x - 180
-    // float rad = (i*180.0/s)*3.14/180.0;
-    // float rad2 = r*3.14/180.0;
-    // float rr = r*(23*t*t*t - 7*t*t + 2*t)/t;
     int x = i % WT_SIZE, y = i / WT_SIZE;
     float tx = (x+1) / static_cast<float>(WT_SIZE),
         ty = (y+1) / static_cast<float>(WT_SIZE);
-    // if (tx > 0.5) tx = 1.0 - tx;
-    // if (ty > 0.5) ty = 1.0 - ty;
-        // printf ("x, y: %d, %d\n", x, y);
-    // float rr = tx*sin(t)*r - ty*cos(t)*r; // picture 1
-    // float rr = tx*tx*tx*sin(t)*r - ty*ty*ty*cos(t)*r
-    //     + tx*cos(t)*r - ty*sin(t)*r; // picture 2
-    // float rr = tx*tx*tx*sin(t)*r - ty*ty*ty*cos(t)*r
-    //     + tx*cos(t)*r*r - ty*sin(t)*r; // picture 3
-    // tx -= 0.5, ty -= 0.5;                 //
-    // float rr = tx*cos(x)*r - ty*sin(y)*r; // picture 4 - unique picture
-
-    // tx -= 0.5, ty -= 0.5; // makes the following look symmetrical
-    // float rr = tx*cos(y/10.0)*r - ty*sin(x/10.0)*r; // picture 5 - looks like
-        // a noise
 
     //TODO variate these coefficients to create animation
     tx *= 2.2/r,
         ty *= 23.2/r; // shift randomly
-    // float rr = tx*cos(x/19.0)*r - ty*sin(y/19.0)*r;
-    // float rr = tx*cos(x/47.5)*r - ty*sin(y/77.5)*r;
-    // float rr = tx*cos(x/47.5)*r / ty*sin(y/77.5)*r; // odd 1
 
     // looks great without the "if (tx > 0.5)" above
     float y_f = WT_SIZE / 2.0, x_f = y_f / 2.0;
     float rr = tx*cos(x/x_f)*r - ty*cos(y/y_f)*r; // looks great
-    // float rr = tx*cos(x/x_f)*r / ty*sin(y/y_f)*r; // amazing
-    // float rr = tx*sin(x/x_f)*r - ty*cos(y/y_f)*r; // cool
 
-    // rr = r*(23*t*t*t - 7*t*t + 2*t);
-    // rr = rr * sin(t2) + rr * cos (t2 = t2 + t2_p); t2_p = cos (t2_p + 0.015);
-    // if (t > 360.0) t = 0;
     if (rr > m) m = rr;
     if (rr < n) n = rr;
     return rr;
-    // return 23*t*t*t - 7*t*t + 2*t; - raises towards n,n
 }
 
 static class Snow final
