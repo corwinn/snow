@@ -93,8 +93,8 @@ float rndfr(float a, float b) { return a + rndf (b-a); }
 
 static float const TMAX {1.0/32}; // translate max value
 static float const TMIN {TMAX/10}; // translate min value
-static float const RMAX {2.0}; // rotate max value
-static float const RMIN {-2.0}; // rotate min value
+static float const RMAX {5.0}; // rotate max value
+static float const RMIN {-5.0}; // rotate min value
 
 class Snowflake final
 {
@@ -109,8 +109,10 @@ class Snowflake final
                              // when -1 or +1 is reached, invert the _rd
     // float _ra {};            // rotation angle
     float _scale;
-    float _color_fade_out {}; // _color delta for fading out; 2^n
+    float _color_delta {};   // _color delta for fading out; 2^n
+    GLfloat _target_color;   // R=G=B for fade_in
     bool _fade_out {};
+    bool _fade_in {};        // do appear, not out of thin air
     const GLfloat _v[3*4]; // vertices: 0-3 = tl, bl, br, tr
     const GLfloat _t[2*4]; // uv
     const GLubyte _i[4] {0, 1, 3, 2}; // indices; TRISTRIP
@@ -137,8 +139,10 @@ class Snowflake final
         _rdy = rndfr (RMIN, RMAX) - rndfr (RMIN, RMAX);
         _rdz = rndfr (RMIN, RMAX) - rndfr (RMIN, RMAX);
         _scale = rndfr (TMIN, TMAX);
-        _color = rndfr (0.5, 1.0);
-        _color_fade_out = {};
+        _target_color = rndfr (.5f, 1.f);
+        _color = 0.f;
+        _color_delta = {_target_color / 256};
+        _fade_in = true;
         _p[0] = rndfr (min_x, max_x); _p[1] = rndf (max_y); _p[2] = rndf (max_z);
         // printf ("Snowflake: pos(%5.2f,%5.2f,%5.2f)\n", _p[0], _p[1], _p[2]);
         // printf ("Snowflake: ro(%5.2f,%5.2f,%5.2f)\n", _rdx, _rdy, _rdz);
@@ -152,9 +156,17 @@ class Snowflake final
     public void Render()//TODO shader (as an option)
     {
         if (_fade_out) {
-            _color -= _color_fade_out;
+            _color -= _color_delta;
             if (_color < 0) return;
-            _color_fade_out += _color_fade_out;
+            _color_delta += _color_delta;
+        }
+        else if (_fade_in) { // can't happen simultaneously
+            _color += _color_delta;
+            if (_color > _target_color) {
+                _color = _target_color;
+                _fade_in = false;
+            }
+            else _color_delta += _color_delta;
         }
         for (int t = _mblur_cnt; t >= 0; t--) {
             glLoadIdentity ();
@@ -198,7 +210,7 @@ class Snowflake final
         if (_fade_out) return;
         _fade_out = _p[1] < min_y
             || _p[0] < min_x || _p[0] > max_x;
-        if (_fade_out) _color_fade_out = _color / 256; // ~8 frames
+        if (_fade_out) _color_delta = _color / 256; // ~8 frames
     }
 };// Snowflake
 
