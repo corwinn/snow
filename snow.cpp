@@ -103,14 +103,14 @@ class Snowflake final
     float _wx, _wy, _wz;     // weight (0;1] by which _d are multiplied
     float _p[3*(TNUM+1)] {}; // base pos x,y,z + trail (TNUM * x,y,z)
     float _r[3*(TNUM+1)] {}; // base rotation x,y,z + trail (TNUM * x,y,z)
-    int   _mblur_cnt {};
+    int   _mblur_cnt {};     // how many of the "trail" are initialzied
     float _dx, _dy, _dz;     // delta x, y, z - translate
     float _rdx, _rdy, _rdz;  // delta x, y, z - rotate
                              // when -1 or +1 is reached, invert the _rd
     // float _ra {};            // rotation angle
     float _scale;
-    float _color_fade_out {};
-    bool _fade_out {};//TODO implement me
+    float _color_fade_out {}; // _color delta for fading out; 2^n
+    bool _fade_out {};
     const GLfloat _v[3*4]; // vertices: 0-3 = tl, bl, br, tr
     const GLfloat _t[2*4]; // uv
     const GLubyte _i[4] {0, 1, 3, 2}; // indices; TRISTRIP
@@ -170,7 +170,7 @@ class Snowflake final
             glScalef (_scale, _scale, 1);
             glTranslatef (-0.5, -0.5, 0);
 
-            glColor3f (_color / (t*t+1), _color / (t*t+1), _color / (t*t+1));
+            glColor4f (_color, _color, _color, 1.0f / (t*t*t+1));
             glBegin (GL_TRIANGLE_STRIP);//TODO come on; (leave this optional)
                 for (int i = 0; i < 4; i++)
                     glTexCoord2fv (&(_t[_i[i]*2])),
@@ -181,8 +181,6 @@ class Snowflake final
     private inline Snowflake & Rotate(float & a, float & d)
     {
         a += d; if (a > 360) a = a-360; else if (a < -360) a = -a-360;
-        // if (a < -1) d =-d, a = -1 + (1 - a);
-        // if (a > 1) d =-d, a = 1 - (a - 1);
         return * this;
     }
     public void Step()
@@ -200,9 +198,7 @@ class Snowflake final
         if (_fade_out) return;
         _fade_out = _p[1] < min_y
             || _p[0] < min_x || _p[0] > max_x;
-            // || _p[2] < min_z || _p[2] > max_z;
         if (_fade_out) _color_fade_out = _color / 256; // ~8 frames
-        // _ra += 0.1; if (_ra > 360) _ra = 0;
     }
 };// Snowflake
 
