@@ -103,11 +103,13 @@ class Snowflake final
     float _wx, _wy, _wz;     // weight (0;1] by which _d are multiplied
     float _p[3*(TNUM+1)] {}; // base pos x,y,z + trail (TNUM * x,y,z)
     float _r[3*(TNUM+1)] {}; // base rotation x,y,z + trail (TNUM * x,y,z)
+    int   _mblur_cnt {};
     float _dx, _dy, _dz;     // delta x, y, z - translate
     float _rdx, _rdy, _rdz;  // delta x, y, z - rotate
                              // when -1 or +1 is reached, invert the _rd
     // float _ra {};            // rotation angle
     float _scale;
+    float _color_fade_out {};
     bool _fade_out {};//TODO implement me
     const GLfloat _v[3*4]; // vertices: 0-3 = tl, bl, br, tr
     const GLfloat _t[2*4]; // uv
@@ -122,6 +124,11 @@ class Snowflake final
         min_x{-0.25}, max_x{1.25}, min_y{-0.5}, max_y{1.5}, min_z{}, max_z{1};
     private void Init()
     {
+        // cleanup the prev. mblur
+        memset (_p+3, 0, 3*TNUM*sizeof(float));
+        memset (_r, 0, 3*(TNUM+1)*sizeof(float));
+        _mblur_cnt = 0;
+        _fade_out = false;
         _wx = _wy = _wz = 1;
         _dx = rndfr (TMIN, TMAX) - rndfr (TMIN, TMAX);
         _dy = -rndfr (TMIN, TMAX);
@@ -131,6 +138,7 @@ class Snowflake final
         _rdz = rndfr (RMIN, RMAX) - rndfr (RMIN, RMAX);
         _scale = rndfr (TMIN, TMAX);
         _color = rndfr (0.5, 1.0);
+        _color_fade_out = {};
         _p[0] = rndfr (min_x, max_x); _p[1] = rndf (max_y); _p[2] = rndf (max_z);
         // printf ("Snowflake: pos(%5.2f,%5.2f,%5.2f)\n", _p[0], _p[1], _p[2]);
         // printf ("Snowflake: ro(%5.2f,%5.2f,%5.2f)\n", _rdx, _rdy, _rdz);
@@ -143,7 +151,12 @@ class Snowflake final
     }
     public void Render()//TODO shader (as an option)
     {
-        for (int t = TNUM; t >= 0; t--) {
+        /*if (_fade_out) {
+            _color -= _color_fade_out;
+            if (_color < 0) return;
+            _color_fade_out += _color_fade_out;
+        }*/
+        for (int t = _mblur_cnt; t >= 0; t--) {
             glLoadIdentity ();
 
             glTranslatef ((_p+3*t)[0], (_p+3*t)[1], (_p+3*t)[2]);
@@ -174,18 +187,22 @@ class Snowflake final
     }
     public void Step()
     {
+        //if (_color < 0) Init ();
         memmove (_p+3, _p, 3*TNUM*sizeof(float));
         memmove (_r+3, _r, 3*TNUM*sizeof(float));
+        if (_mblur_cnt < TNUM) _mblur_cnt++;
         Rotate (_r[0], _rdx).Rotate (_r[1], _rdy).Rotate (_r[2], _rdz);
         _p[0] += _wx * _dx;
         _p[1] += _wy * _dy;
         _p[2] += _wz * _dz;
         // stop disappearing out of thin air
         if (_p[2] > max_z || _p[2] < min_z) _dz = -_dz, _p[2] += _dz;
+        //if (_fade_out) return;
         _fade_out = _p[1] < min_y
             || _p[0] < min_x || _p[0] > max_x;
             // || _p[2] < min_z || _p[2] > max_z;
-        if (_fade_out) _fade_out = false, Init ();
+        //if (_fade_out) _color_fade_out = _color / 256; // ~8 frames
+        if (_fade_out) Init ();
         // _ra += 0.1; if (_ra > 360) _ra = 0;
     }
 };// Snowflake
