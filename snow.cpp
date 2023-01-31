@@ -579,13 +579,12 @@ int main()
     glShadeModel (GL_FLAT);
     glClearColor (0.0f, 0.0f, 0.0f, 0.0f);
     glClearDepth (1.0f);
-    glEnable (GL_DEPTH_TEST);
-    glDepthFunc (GL_LEQUAL);
+    glDisable (GL_DEPTH_TEST);
     glEnable (GL_POINT_SMOOTH);
-    // glDisable (GL_ALPHA_TEST);
-    // glAlphaFunc (GL_GEQUAL, 1.0f);
+    glEnable (GL_ALPHA_TEST);
+    glAlphaFunc (GL_GEQUAL, 0.01f);
     glEnable (GL_BLEND);
-    glBlendFunc (GL_SRC_ALPHA, GL_ONE); // GL_ONE_MINUS_SRC_ALPHA
+    glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glutKeyboardFunc (glutKeyPressed);
     glutReshapeFunc (glutReshape);
     glutDisplayFunc (glutDisplay);
