@@ -282,8 +282,16 @@ static class Snow final
     public void Step() { for (auto & s : _s) s.Step (); }
 } Snow;
 
+static struct timespec frame_a, frame_b;
+
+#define timespec_diff(a, b) \
+    ((b.tv_sec - a.tv_sec)*1000000000 + (b.tv_nsec - a.tv_nsec))
+    //
+    // 1.7000 2.5000 =  8000
+
 static void glutDisplay()
 {
+    clock_gettime (CLOCK_REALTIME, &frame_a);
     glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     Snow.Render ();
 
@@ -300,6 +308,7 @@ static void glutDisplay()
     glEnd ();*/
 
     glutSwapBuffers ();
+    clock_gettime (CLOCK_REALTIME, &frame_b);
 }
 
 // auto-hide the mouse cursor on inactivity when full-screen
@@ -314,7 +323,22 @@ static void glutIdle()
             glutSetCursor (GLUT_CURSOR_NONE);
     }
     if (! paused) Snow.Step ();
-    usleep (40000), glutPostRedisplay (); //TODO timing
+
+    long frame_time = timespec_diff (frame_a, frame_b); // [nsec]
+    if (frame_time > 0) {
+        auto ftus = frame_time / 1000.0; // [usec]
+        // GLdouble fps = 1000000.0 / ftus;
+        auto const TARGET_FPS {60};
+        GLdouble adj = 1000000.0 / TARGET_FPS - ftus; // [usec]
+        /*printf ("lastframe: %0000000.5f usec, fps: %0000000.5f, adj:"
+            " %0000000.5f\n",
+            frame_time / 1000.0, fps, adj);*/
+        if (adj > 0)
+            usleep ((useconds_t)(adj));
+        glutPostRedisplay ();
+    }
+    else
+        usleep (40000), glutPostRedisplay ();
 }
 
 static void glutReshape(GLsizei width, GLsizei height)
