@@ -86,11 +86,10 @@ static GLsizei current_viewport_width {0}, current_viewport_height {0};
 //TODO os.h
 #ifdef _WIN32
 float rndf(float n) { return rand () / static_cast<float>(RAND_MAX) * n; }
-float rndi(int n) { return rand () / RAND_MAX * n; }
 #else
 float rndf(float n) { return random () / static_cast<float>(RAND_MAX) * n; }
-float rndi(int n) { return random () / RAND_MAX * n; }
 #endif
+float rndi(int n) { return static_cast<int>(rndf (n)+0.5f); }
 float rndfr(float a, float b) { return a + rndf (b-a); }
 
 static float const TMAX {1.0/32}; // translate max value
@@ -142,7 +141,7 @@ class Snowflake final
         _rdz = rndfr (RMIN, RMAX) - rndfr (RMIN, RMAX);
         _scale = rndfr (TMIN, TMAX);
         _target_color = rndfr (.5f, 1.f);
-        _color = 0.f;
+        _color = 0.001f;
         _color_delta = {_target_color / 256};
         _fade_in = true;
         _p[0] = rndfr (min_x, max_x); _p[1] = rndf (max_y); _p[2] = rndf (max_z);
@@ -204,7 +203,7 @@ class Snowflake final
         static float x_w {}, y_w {},
             dy_w {0.0001}, // random cos parameter to simulate wind blows
             dx_w {0.0001}; // random sin parameter to simulate wind blows
-        if (_color < 0) Init ();
+        if (_color < 0 && _fade_out) Init ();
         memmove (_p+3, _p, 3*TNUM*sizeof(float));
         memmove (_r+3, _r, 3*TNUM*sizeof(float));
         if (_mblur_cnt < TNUM) _mblur_cnt++;
@@ -228,7 +227,7 @@ class Snowflake final
         // stop disappearing out of thin air
         if (_p[2] > max_z || _p[2] < min_z) _dz = -_dz, _p[2] += _dz;
         if (_fade_out) return;
-        _fade_out = _p[1] < min_y
+        _fade_out = _p[1] > max_y || _p[1] < min_y
             || _p[0] < min_x || _p[0] > max_x;
         if (_fade_out) _color_delta = _color / 256; // ~8 frames
     }// Step
