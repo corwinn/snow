@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <GL/gl.h>
 #include <GL/glut.h>
 #include <GL/freeglut.h>
+#include <GL/freeglut_ext.h>
 #ifdef _WIN32
 #include <GL/glext.h>
 #endif
@@ -359,21 +360,18 @@ static void glutReshape(GLsizei width, GLsizei height)
 
 static GLvoid glutKeyPressed(unsigned char key, int, int)
 {
-    static int x = 0, y = 0, w = 320, h = 200;
     if ('p' == key) paused = ! paused;
     else if ('q' == key) exit (0);
     //D else if ('a' == key) ry += 1.f;
     //D else if ('d' == key) ry -= 1.f;
     else if (key == 'f') {
+        //TODO this doesn't seem to be taking care of NC and decorations
         if (!fs) {
-            x = glutGet (GLUT_WINDOW_X), y = glutGet (GLUT_WINDOW_Y);
-            w = glutGet (GLUT_WINDOW_WIDTH), h = glutGet (GLUT_WINDOW_HEIGHT);
-            glutFullScreen ();
-            fs = true;
+            glutFullScreenToggle (), fs = true;
             mouse_moved = time (0);
         } else
-            glutSetCursor (GLUT_CURSOR_INHERIT),
-            glutReshapeWindow (w, h), glutPositionWindow (x, y), fs = false;
+            glutSetCursor (GLUT_CURSOR_INHERIT), glutFullScreenToggle (),
+            fs = false;
     }
 }
 
